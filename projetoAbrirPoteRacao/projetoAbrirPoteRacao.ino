@@ -1,13 +1,15 @@
+#include <Stepper.h>
 #include <SoftwareSerial.h>
 #include <Ultrasonic.h>
-#include <CustomStepper.h>  
+//#include <CustomStepper.h>  
+
 
 
 //inicializa as portas do motor de passo 
-#define IN_1 22
-#define IN_2 5
-#define IN_3 6
-#define IN_4 7
+#define IN_1 51
+#define IN_2 3
+#define IN_3 4
+#define IN_4 5
 #define SPEED_ROTATION 12
 
 //inicializa portas do sensor ultrasonico
@@ -23,11 +25,11 @@
 //tags
 
 #define TAG_1 "180039314656"
+#define TAG_2 "030073B9B47D"
 
    
-//Define os parametros iniciais de ligacao do motor de passo  
-CustomStepper stepper(22, 5, 6, 7, (byte[]){8/*numero de passos*/, B1000, B1100, B0100, 
-B0110, B0010, B0011, B0001, B1001}, 4075.7728395, SPEED_ROTATION, CW);  
+const int stepsPerRevolution = 500; 
+Stepper myStepper(stepsPerRevolution, IN_1,IN_3,IN_2,IN_4);  
 
 //inicia sensor de distancia
 Ultrasonic ultrasonic(trigger, echo);
@@ -49,11 +51,7 @@ void setup()
 
   RFID.begin(9600);
 
-  //Define a velocidade do motor  
-  stepper.setRPM(SPEED_ROTATION);  
-  
-  //Define o numero de passos por rotacao  
-  stepper.setSPR(4075.7728395);  
+  myStepper.setSpeed(60);
 
 } 
   
@@ -64,31 +62,27 @@ void loop()
   boolean reconheceu = rfidMod();
   delay(1000);
 
+ if(RFID.available() > 0){
   if(reconheceu && distance() < 10){
-    Serial.println("Entrou");
-    
+    motor();
   }
+ }
   
 
 }
-void motor(int angulo){
+void motor(){
 
- //Serial.println(stepper.isDone());
- if (stepper.isDone())  
- {  
-   //Intervalo entre acionamentos  
-    delay(1000);  
-   //Define o sentido de rotacao (CW = Horario)  
-   stepper.setDirection(CW);  
-   //Define o angulo de rotacao  
-   stepper.rotateDegrees(angulo);  
-  }  
-
-  stepper.run();
+  //Gira o motor no sentido horario a 90 graus 2 vezes
+ for (int i = 0; i<=1; i++)
+ {
+  myStepper.step(-512); 
+ }
+ delay(2000);
 
 }
 boolean rfidMod(){
   
+if(RFID.available() > 0){
   while(RFID.available()>0){
       c=RFID.read(); 
       msg += c;
@@ -108,12 +102,17 @@ boolean rfidMod(){
     Serial.flush();
 
     return true;
+  }else{
+    Serial.println("Negado Para:");
+    Serial.println(msg);
+    msg="";
+    Serial.flush();
+    return false;
   }
-
-  return false;
+}
     
 }
-float distance(){
+float distance(){ 
   float t = ultrasonic.Timing();
   float dt = t * 0.034 / 2;
   Serial.print("Distancia: ");
