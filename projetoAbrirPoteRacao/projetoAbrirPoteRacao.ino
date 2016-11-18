@@ -58,25 +58,43 @@ void setup()
 void loop() 
 { 
 
-
+  boolean isOpen = false;
   boolean reconheceu = rfidMod();
   delay(1000);
 
  if(RFID.available() > 0){
   if(reconheceu && distance() < 10){
-    motor();
+    Serial.println("Abrindo");
+     motor(180);
+    isOpen = true;
   }
- }
+  
+}
+//delay de 1 min para fechar
+
+if(isOpen == true && distance() > 10){
+   Serial.println("Fechando..");
+  delay(30000);
+  motorClose(180);
+}
+
+ 
   
 
 }
-void motor(){
+void motor(int graus){
 
   //Gira o motor no sentido horario a 90 graus 2 vezes
- for (int i = 0; i<=1; i++)
- {
-  myStepper.step(-512); 
- }
+  myStepper.step(converteGraus(graus)); 
+ delay(2000);
+
+}
+void motorClose(int graus){
+
+  //Gira o motor no sentido horario a 90 graus 2 vezes
+
+  myStepper.step(converteGraus(graus)); 
+ 
  delay(2000);
 
 }
@@ -95,7 +113,7 @@ if(RFID.available() > 0){
   }
   
   if(msg == TAG_1){
-    Serial.println("Aceita");
+    Serial.println("TAG Aceita");
     Serial.print("TAG: ");
     Serial.println(msg);
     msg="";
@@ -121,6 +139,9 @@ float distance(){
 
   return dt;
 }
-
+int converteGraus(int graus){
+  double valorMotor = 5.689 * graus;
+  return valorMotor;
+}
 
 
