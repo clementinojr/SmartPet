@@ -93,7 +93,7 @@ void motorClose(int graus){
 
   //Gira o motor no sentido horario a 90 graus 2 vezes
 
-  myStepper.step(converteGraus(graus)); 
+  myStepper.step(-converteGraus(graus)); 
  
  delay(2000);
 
