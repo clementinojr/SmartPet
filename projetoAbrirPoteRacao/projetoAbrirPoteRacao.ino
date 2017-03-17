@@ -1,145 +1,150 @@
+#include <Ultrasonic.h>
 #include <Stepper.h>
 #include <SoftwareSerial.h>
-#include <Ultrasonic.h>
-//#include <CustomStepper.h>  
+#include <SPI.h>
+#include <MFRC522.h>
 
 
-
-//inicializa as portas do motor de passo 
-#define IN_1 51
-#define IN_2 3
-#define IN_3 4
-#define IN_4 5
+//inicializa as portas do motor de passo
+#define IN_1 7
+#define IN_2 6
+#define IN_3 5
+#define IN_4 4
 #define SPEED_ROTATION 12
 
+//inicializa as variaveis do rfid
+
+#define SS_PIN 10
+//#define SCK 13
+//#define MOSI 11
+//#define MISO 12
+#define RST_PIN 9
+
+// Definicoes pino modulo RC522
+MFRC522 mfrc522(SS_PIN, RST_PIN); 
+
+
 //inicializa portas do sensor ultrasonico
-#define trigger 12
-#define echo 13
+#define trigger 4 
+#define echo 3
 
-//iniciando portas rx e tx
-
-#define RX 10
-#define TX 35
 
 
 //tags
 
-#define TAG_1 "180039314656"
-#define TAG_2 "030073B9B47D"
+#define TAG_1 "45 5C 07 88"
+#define TAG_2 "F9 C7 95 A5"
 
-   
-const int stepsPerRevolution = 500; 
-Stepper myStepper(stepsPerRevolution, IN_1,IN_3,IN_2,IN_4);  
+
+const int stepsPerRevolution = 500;
+Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
 
 //inicia sensor de distancia
+
+
 Ultrasonic ultrasonic(trigger, echo);
 
-//iniciando o sensor RFID nas portas Rx e TX
-SoftwareSerial RFID(RX, TX); // RX and TX
 
 
-//variaveis globais
-
-String msg,last; 
-char c;
-  
-void setup() 
-{   
-  //pinMode(RX,OUTPUT);
-   
+void setup()
+{
   Serial.begin(9600);
 
-  RFID.begin(9600);
 
   myStepper.setSpeed(60);
 
-} 
-  
-void loop() 
-{ 
+   // Inicia  SPI bus
+  SPI.begin();
+  // Inicia MFRC522
+  mfrc522.PCD_Init(); 
+
+}
+
+void loop()
+{
 
   boolean isOpen = false;
   boolean reconheceu = rfidMod();
-  delay(1000);
 
- if(RFID.available() > 0){
-  if(reconheceu && distance() < 10){
-    Serial.println("Abrindo");
-     motor(180);
-    isOpen = true;
-  }
-  
-}
-//delay de 1 min para fechar
 
-if(isOpen == true && distance() > 10){
-   Serial.println("Fechando..");
-  delay(30000);
-  motorClose(180);
-}
-
- 
-  
+  if(reconheceu){
+    Serial.println("Abrindo...");
+      motor(180);
+     isOpen = true;
+     //delay(2000);
+    }
+  if(isOpen == true){
+      Serial.println("Fechando..");
+      //delay(1000);
+      motorClose(180);
+    }
+        
 
 }
-void motor(int graus){
+void motor(int graus) {
 
   //Gira o motor no sentido horario a 90 graus 2 vezes
-  myStepper.step(converteGraus(graus)); 
- delay(2000);
+  myStepper.step(converteGraus(graus));
+  delay(2000);
 
 }
-void motorClose(int graus){
+void motorClose(int graus) {
 
   //Gira o motor no sentido horario a 90 graus 2 vezes
 
-  myStepper.step(-converteGraus(graus)); 
- 
- delay(2000);
+  myStepper.step(-converteGraus(graus));
+
+  delay(2000);
 
 }
-boolean rfidMod(){
-  
-if(RFID.available() > 0){
-  while(RFID.available()>0){
-      c=RFID.read(); 
-      msg += c;
-  }
-  msg=msg.substring(1,13);
-  if(msg != last){ 
-   if (msg.length()>1){
-       last=msg;
-   } 
-  }
-  
-  if(msg == TAG_1){
-    Serial.println("TAG Aceita");
-    Serial.print("TAG: ");
-    Serial.println(msg);
-    msg="";
-    Serial.flush();
+boolean rfidMod() {
 
-    return true;
-  }else{
-    Serial.println("Negado Para:");
-    Serial.println(msg);
-    msg="";
-    Serial.flush();
+   // Aguarda a aproximacao do cartao
+  if ( ! mfrc522.PICC_IsNewCardPresent()) 
+  {
     return false;
   }
-}
+  // Seleciona um dos cartoes
+  if ( ! mfrc522.PICC_ReadCardSerial()) 
+  {
+    return false;
+  }
+  // Mostra UID na serial
+  //Serial.print("UID da tag :");
+  String conteudo= "";
+  byte letra;
+  for (byte i = 0; i < mfrc522.uid.size; i++) 
+  {
+     //Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+     //Serial.print(mfrc522.uid.uidByte[i], HEX);
+     conteudo.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+     conteudo.concat(String(mfrc522.uid.uidByte[i], HEX));
+  }
+  /*Serial.println();
+  Serial.print("Mensagem : ");*/
+  conteudo.toUpperCase();
+  
+  // Testa se o cartao1 foi lido
+  if (conteudo.substring(1) == TAG_1)
+  {
+      Serial.println("Aceito");
+      return true;
+  }
     
+    return false;
+  
+ 
 }
-float distance(){ 
-  float t = ultrasonic.Timing();
-  float dt = t * 0.034 / 2;
+/*float distance(){
+  long t = ultrasonic.Timing();
+  loat dt = t * 0.034 / 2;
   Serial.print("Distancia: ");
   Serial.println(dt);
   delay(500);
 
   return dt;
-}
-int converteGraus(int graus){
+}*/
+int converteGraus(int graus) {
   double valorMotor = 5.689 * graus;
   return valorMotor;
 }
