@@ -15,9 +15,9 @@
 //inicializa as variaveis do rfid
 
 #define SS_PIN 10
-//#define SCK 13
-//#define MOSI 11
-//#define MISO 12
+#define SCK 13
+#define MOSI 11
+#define MISO 12
 #define RST_PIN 9
 
 // Definicoes pino modulo RC522
@@ -25,7 +25,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 
 //inicializa portas do sensor ultrasonico
-#define trigger 4 
+#define trigger 2
 #define echo 3
 
 
@@ -34,7 +34,6 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 #define TAG_1 "45 5C 07 88"
 #define TAG_2 "F9 C7 95 A5"
-
 
 const int stepsPerRevolution = 500;
 Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
@@ -65,7 +64,7 @@ void loop()
 
   boolean isOpen = false;
   boolean reconheceu = rfidMod();
-
+  
 
   if(reconheceu){
     Serial.println("Abrindo...");
@@ -78,7 +77,10 @@ void loop()
       //delay(1000);
       motorClose(180);
     }
-        
+
+
+
+     
 
 }
 void motor(int graus) {
@@ -135,15 +137,15 @@ boolean rfidMod() {
   
  
 }
-/*float distance(){
-  long t = ultrasonic.Timing();
+float distance(){
+  long t = ultrasonic.timing();
   loat dt = t * 0.034 / 2;
   Serial.print("Distancia: ");
   Serial.println(dt);
   delay(500);
 
   return dt;
-}*/
+}
 int converteGraus(int graus) {
   double valorMotor = 5.689 * graus;
   return valorMotor;
