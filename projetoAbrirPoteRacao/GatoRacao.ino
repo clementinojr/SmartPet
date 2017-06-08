@@ -6,11 +6,14 @@
 
 
 //inicializa as portas do motor de passo
-#define IN_1 7
-#define IN_2 6
-#define IN_3 5
-#define IN_4 4
+#define IN_1 4
+#define IN_2 5
+#define IN_3 6
+#define IN_4 7
 #define SPEED_ROTATION 12
+const int pino_w = 0;
+
+
 
 //inicializa as variaveis do rfid
 
@@ -25,8 +28,8 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 
 //inicializa portas do sensor ultrasonico
-#define trigger 2
-#define echo 3
+#define trigger 3
+#define echo 2
 boolean isOpen;
 
 
@@ -63,16 +66,17 @@ void loop()
   float distanceVal = distance();
   boolean reconheceu = rfidMod();
   
-  if(reconheceu && distanceVal <= 10){
+  
+  if(reconheceu||digitalRead(pino_w)== LOW){
     Serial.println("Abrindo...");
       motor(-180);
      isOpen = true;
      //delay(2000);
     }
-  if(isOpen == true && distanceVal > 100){
+  if(isOpen == true && distanceVal >20 ){
       Serial.println("Fechando..");
       //delay(1000);
-      motorClose(-200);
+      motorClose(-180);
       isOpen = false;
   }
 
@@ -146,4 +150,3 @@ int converteGraus(int graus) {
   double valorMotor = 5.689 * graus;
   return valorMotor;
 }
-
