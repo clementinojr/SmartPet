@@ -15,6 +15,7 @@
 int medir = -1;
 
 
+String TAG = "180039314656";
 
 
 //inicializa portas do sensor ultrasonico
@@ -55,8 +56,9 @@ void loop()
   float distanceVal = distance();
   boolean reconheceu = false;
   //rfidMod();
-  leitura = "0";
-
+  //leitura = "0";
+  String str="";
+  char c="";
 
    
 //medir = RFID.available();
@@ -64,17 +66,18 @@ void loop()
   while (RFID.available() > 0 )//&& leitura=="0"
   {
     //digitalWrite(Led, HIGH);
-    leitura = RFID.read();
-  Serial.print("RFID: ");
-      Serial.println(leitura);
-    
+    c = RFID.read();
+  //Serial.print("RFID: ");
+      //Serial.println(c);
+      str += c;
   }
-
+  str=str.substring(1,13);
+  Serial.println(str);
+  Serial.flush();
+  //Serial.print("RFID: ");
+  //Serial.println(leitura);
   
-  Serial.print("RFID: ");
-  Serial.println(leitura);
-  
-  if(leitura != "0" &&!isOpen){
+  if(str == TAG && !isOpen){
     Serial.println("Abrindo...");
       motor(-180);
      isOpen = true;
