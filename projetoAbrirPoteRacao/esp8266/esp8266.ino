@@ -85,7 +85,7 @@ void loop() {
     client.print("On");  
   } else {
     client.print("Off");
-  }
+  } 
   client.println("<br><br>");
   client.println("Click <a href=\"/LED=ON\">here</a> turn the LED on pin 2 ON<br>");
   client.println("Click <a href=\"/LED=OFF\">here turn the LED on pin 2 OFF<br>");
