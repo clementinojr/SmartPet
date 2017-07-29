@@ -31,7 +31,9 @@ source : https://bitbucket.org/MarcoRabelo/esp8266/src/8b530e758b97/06-MQTT_WiFi
 #define servidor_mqtt_porta       "19337"
 #define servidor_mqtt_usuario     "dmsjvruj" 
 #define servidor_mqtt_senha       "miXaqhWnTVA9"  
-#define mqtt_topico_sub           "esp8266/pincmd"  
+#define mqtt_topico_sub           "esp8266/pincmd" 
+
+#define mqtt_topico_pub           "esp8266/up"  //testing
 
 //Declaração do pino que será utilizado e a memória alocada para armazenar o status deste pino na EEPROM
 #define pino                      2                   //Pino que executara a acao dado no topico "esp8266/pincmd" e terá seu status informado no tópico "esp8266/pinstatus"
@@ -149,18 +151,28 @@ void retorno(char* topico, byte* mensagem, unsigned int tamanho) {
 
 
 
-  //Executando o comando solicitado
-  imprimirSerial(false, "Status do pino antes de processar o comando: ");
-  imprimirSerial(true, String(digitalRead(pino)).c_str());
+//  imprimirSerial(false, "Status do pino antes de processar o comando: ");
+//  imprimirSerial(true, String(digitalRead(pino)).c_str());
+    imprimirSerial(false, "Status before command: ");
+       if(digitalRead(pino)==0){      
+    imprimirSerial(true, "closed" );
+     }else{      
+    imprimirSerial(true, "open" );
+     }
+
+     
   
   if(strMensagem == "open"){
     imprimirSerial(true, "Opening...");
     digitalWrite(pino, HIGH);
     gravarStatusPino(HIGH);
+    client.publish(mqtt_topico_pub,"isopen");
   }else if(strMensagem == "close"){
     imprimirSerial(true, "Closing...");
     digitalWrite(pino, LOW);
     gravarStatusPino(LOW);
+    
+    client.publish(mqtt_topico_pub,"isclosed");
   }else if(strMensagem.startsWith("timecat1-") > 0){
     
     strMensagem.replace("timecat1-", "");
@@ -168,6 +180,16 @@ void retorno(char* topico, byte* mensagem, unsigned int tamanho) {
     imprimirSerial(true, strMensagem );
     
     gravarHorarioGato1(strMensagem.toInt());
+
+//String temp123 ="tcat1-"+strMensagem;
+//byte tempLenght = 12;
+//    if (client.publish(mqtt_topico_pub, temp123,tempLenght)){
+//      
+//    imprimirSerial(true, "published" );
+//    }else{
+//      
+//    imprimirSerial(true, "not published" );
+//    }
     
 
   }else if(strMensagem == "check"){
@@ -201,6 +223,9 @@ void retorno(char* topico, byte* mensagem, unsigned int tamanho) {
 
     
   
+  }else if(strMensagem == "format"){
+
+    SPIFFS.format();
   }
 //  else{
 //    imprimirSerial(true, "Opening or closing...");
@@ -208,8 +233,13 @@ void retorno(char* topico, byte* mensagem, unsigned int tamanho) {
 //    gravarStatusPino(digitalRead(pino));
 //  }
 //  
-  imprimirSerial(false, "Status do pino depois de processar o comando: ");
-  imprimirSerial(true, String(digitalRead(pino)).c_str());
+  imprimirSerial(false, "Status after command: ");
+       if(digitalRead(pino)==0){      
+    imprimirSerial(true, "closed" );
+     }else{      
+    imprimirSerial(true, "open" );
+     }
+//  imprimirSerial(true, String(digitalRead(pino)).c_str());
   
 
 }
