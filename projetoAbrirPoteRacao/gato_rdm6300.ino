@@ -128,7 +128,7 @@ boolean rfidMod() {
  
 
 float distance(){
-  long t = ultrasonic.timing();
+//  long t = ultrasonic.timing();
   long dt = t * 0.034 / 2;
   Serial.print("Distancia: ");
   Serial.println(dt);
