@@ -24,7 +24,7 @@ const int pino_w = 0;
 #define RST_PIN 9
 
 // Definicoes pino modulo RC522
-MFRC522 mfrc522(SS_PIN, RST_PIN); 
+//MFRC522 mfrc522(SS_PIN, RST_PIN); 
 
 
 //inicializa portas do sensor ultrasonico
@@ -38,7 +38,7 @@ boolean isOpen;
 #define TAG_1 "45 5C 07 88"
 #define TAG_2 "F9 C7 95 A5"
 
-const int stepsPerRevolution = 500;
+//const int stepsPerRevolution = 500;
 Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
 
 //inicia sensor de distancia
@@ -138,8 +138,8 @@ boolean rfidMod() {
  
 }
 float distance(){
-  long t = ultrasonic.timing();
-  long dt = t * 0.034 / 2;
+ // long t = ultrasonic.timing();
+  //long dt = t * 0.034 / 2;
   Serial.print("Distancia: ");
   Serial.println(dt);
   delay(500);

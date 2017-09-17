@@ -137,15 +137,15 @@ boolean rfidMod() {
   
  
 }
-float distance(){
-  long t = ultrasonic.timing();
-  loat dt = t * 0.034 / 2;
-  Serial.print("Distancia: ");
-  Serial.println(dt);
-  delay(500);
-
-  return dt;
-}
+//float distance(){
+//  long t = ultrasonic.timing();
+//  loat dt = t * 0.034 / 2;
+//  Serial.print("Distancia: ");
+//  Serial.println(dt);
+//  delay(500);
+//
+//  return dt;
+//}
 int converteGraus(int graus) {
   double valorMotor = 5.689 * graus;
   return valorMotor;

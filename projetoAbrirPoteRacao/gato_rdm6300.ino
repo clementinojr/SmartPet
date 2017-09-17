@@ -2,6 +2,7 @@
 #include <Stepper.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
+#include <MFRC522.h>
 
 
 //inicializa as portas do motor de passo
@@ -10,12 +11,20 @@
 #define IN_3 6
 #define IN_4 7
 #define SPEED_ROTATION 12
+const int pino_w = 0;
 
 
-int medir = -1;
 
+//inicializa as variaveis do rfid
 
-String TAG = "180039314656";
+#define SS_PIN 10
+#define SCK 13
+#define MOSI 11
+#define MISO 12
+#define RST_PIN 9
+
+// Definicoes pino modulo RC522
+MFRC522 mfrc522(SS_PIN, RST_PIN); 
 
 
 //inicializa portas do sensor ultrasonico
@@ -24,6 +33,10 @@ String TAG = "180039314656";
 boolean isOpen;
 
 
+//tags
+
+#define TAG_1 "45 5C 07 88"
+#define TAG_2 "F9 C7 95 A5"
 
 const int stepsPerRevolution = 500;
 Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
@@ -34,50 +47,27 @@ Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
 Ultrasonic ultrasonic(trigger, echo);
 
 
-SoftwareSerial RFID(10, 9);
+
 void setup()
 {
-  //Inicializa a serial para o leitor RDM6300
-  RFID.begin(9600);
-  //Inicializa a serial para comunicacao com o PC
   Serial.begin(9600);
-  //Informacoes iniciais
-  Serial.println("Leitor RFID RDM6300\n");
   isOpen = false;
+
   myStepper.setSpeed(60);
-    
+
+   // Inicia  SPI bus
+  SPI.begin();
+  // Inicia MFRC522
+  mfrc522.PCD_Init(); 
 }
 
-
-String leitura;
-
 void loop()
-{ 
+{
   float distanceVal = distance();
-  boolean reconheceu = false;
-  //rfidMod();
-  //leitura = "0";
-  String str="";
-  char c="";
-
-   
-//medir = RFID.available();
-
-  while (RFID.available() > 0 )//&& leitura=="0"
-  {
-    //digitalWrite(Led, HIGH);
-    c = RFID.read();
-  //Serial.print("RFID: ");
-      //Serial.println(c);
-      str += c;
-  }
-  str=str.substring(1,13);
-  Serial.println(str);
-  Serial.flush();
-  //Serial.print("RFID: ");
-  //Serial.println(leitura);
+  boolean reconheceu = rfidMod();
   
-  if(str == TAG && !isOpen){
+  
+  if(reconheceu||digitalRead(pino_w)== LOW){
     Serial.println("Abrindo...");
       motor(-180);
      isOpen = true;
@@ -89,11 +79,10 @@ void loop()
       motorClose(-180);
       isOpen = false;
   }
-  
-  }
 
-   
+     
 
+}
 void motor(int graus) {
 
   //Gira o motor no sentido horario a 90 graus 2 vezes
@@ -111,24 +100,45 @@ void motorClose(int graus) {
 
 }
 boolean rfidMod() {
-// 
-//medir = RFID.available();
-//
-//Serial.println(medir);
-//  if (medir> 0){
-//      return true;
-//      medir=0;
-//  }else{
-//    return false;
-//  }
-//  
 
-}
-
+   // Aguarda a aproximacao do cartao
+  if ( ! mfrc522.PICC_IsNewCardPresent()) 
+  {
+    return false;
+  }
+  // Seleciona um dos cartoes
+  if ( ! mfrc522.PICC_ReadCardSerial()) 
+  {
+    return false;
+  }
+  // Mostra UID na serial
+  //Serial.print("UID da tag :");
+  String conteudo= "";
+  byte letra;
+  for (byte i = 0; i < mfrc522.uid.size; i++) 
+  {
+     //Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+     //Serial.print(mfrc522.uid.uidByte[i], HEX);
+     conteudo.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+     conteudo.concat(String(mfrc522.uid.uidByte[i], HEX));
+  }
+  /*Serial.println();
+  Serial.print("Mensagem : ");*/
+  conteudo.toUpperCase();
+  
+  // Testa se o cartao1 foi lido
+  if (conteudo.substring(1) == TAG_1)
+  {
+      Serial.println("Aceito");
+      return true;
+  }
+    
+    return false;
+  
  
-
+}
 float distance(){
-//  long t = ultrasonic.timing();
+  long t = ultrasonic.timing();
   long dt = t * 0.034 / 2;
   Serial.print("Distancia: ");
   Serial.println(dt);
@@ -140,3 +150,4 @@ int converteGraus(int graus) {
   double valorMotor = 5.689 * graus;
   return valorMotor;
 }
+
