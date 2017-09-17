@@ -10,7 +10,7 @@
         android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Open"
+        android:text="Abrir"
         android:onClick="open"
         app:layout_constraintLeft_toLeftOf="parent"
         android:layout_alignParentBottom="true"
@@ -21,7 +21,7 @@
         android:id="@+id/button1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Close"
+        android:text="Fechar"
         android:onClick="close"
         tools:layout_editor_absoluteY="447dp"
         app:layout_constraintLeft_toRightOf="@+id/button"
@@ -29,10 +29,11 @@
         android:layout_centerHorizontal="true" />
 
     <Switch
+
+        android:visibility="invisible"
         android:id="@+id/switch1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="25dp"
         android:layout_alignTop="@+id/imageView"
         android:layout_alignRight="@+id/button1"
         android:layout_alignEnd="@+id/button1" />
@@ -42,7 +43,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Status"
-
         android:layout_below="@+id/switch1"
         android:layout_alignLeft="@+id/switch1"
         android:layout_alignStart="@+id/switch1" />
