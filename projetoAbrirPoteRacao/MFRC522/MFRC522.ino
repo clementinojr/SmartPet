@@ -11,6 +11,8 @@
 #define IN_3 6
 #define IN_4 7
 #define SPEED_ROTATION 12
+
+//wifi
 const int pino_w = 0;
 
 
@@ -31,6 +33,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 #define trigger 3
 #define echo 2
 boolean isOpen;
+boolean isService;
 
 
 //tags
@@ -40,107 +43,82 @@ boolean isOpen;
 
 const int stepsPerRevolution = 500;
 Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
-
 //inicia sensor de distancia
-
-
 Ultrasonic ultrasonic(trigger, echo);
-
-
-
 void setup()
 {
   Serial.begin(9600);
   isOpen = false;
-
+  isService = false;
   myStepper.setSpeed(60);
-
-   // Inicia  SPI bus
-  SPI.begin();
-  // Inicia MFRC522
-  mfrc522.PCD_Init(); 
+  SPI.begin();// Inicia  SPI bus  
+  mfrc522.PCD_Init(); // Inicia MFRC522
 }
 
 void loop()
 {
   float distanceVal = distance();
   boolean reconheceu = rfidMod();
-  
-  
-  if(reconheceu||digitalRead(pino_w)== LOW){
-    Serial.println("Abrindo...");
-      motor(-180);
-     isOpen = true;
-     //delay(2000);
+
+
+if(isOpen){
+  if(isService){
+    if(digitalRead(pino_w)== HIGH){
+      
+    Serial.println("Pino w High");
+      fechar();
+      isService=false;
+      
+    Serial.println("Fora de servico");
+    }  
+  }else{
+    if(distanceVal >20 ){
+      fechar();
     }
-  if(isOpen == true && distanceVal >20 ){
-      Serial.println("Fechando..");
-      //delay(1000);
-      motorClose(-180);
-      isOpen = false;
-  }
+  }  
+}else{
 
-     
+ if(reconheceu){
+    abrir();    
+  }else if(digitalRead(pino_w)== LOW){
+    Serial.println("Pino w Low");
+    abrir();
+    isService=true;
+    
+    Serial.println("Em servico");
+   }
 
+  
 }
-void motor(int graus) {
+}
 
-  //Gira o motor no sentido horario a 90 graus 2 vezes
+void abrir(){
+    Serial.println("Abrindo...");
+      motor(-180);//abre
+     isOpen = true;  
+}
+void fechar(){
+        Serial.println("Fechando..");
+      motorClose(-180);//fecha
+      isOpen = false;
+}
+
+void motor(int graus) {
   myStepper.step(converteGraus(graus));
   delay(2000);
 
 }
 void motorClose(int graus) {
-
-  //Gira o motor no sentido horario a 90 graus 2 vezes
-
   myStepper.step(-converteGraus(graus));
-
   delay(2000);
 
 }
 boolean rfidMod() {
-
-
-   // Aguarda a aproximacao do cartao
-//  if ( ! mfrc522.PICC_IsNewCardPresent()) 
-//  {
-//    return false;
-//  }
   if(mfrc522.PICC_IsNewCardPresent()){
       Serial.println("Aceito");
       return true;
   }
-  // Seleciona um dos cartoes
-//  if ( ! mfrc522.PICC_ReadCardSerial()) 
-//  {
-//    return false;
-//  }
-  // Mostra UID na serial
-  //Serial.print("UID da tag :");
-//  String conteudo= "";
-//  byte letra;
-//  for (byte i = 0; i < mfrc522.uid.size; i++) 
-//  {
-//     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-//     Serial.print(mfrc522.uid.uidByte[i], HEX);
-//     conteudo.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
-//     conteudo.concat(String(mfrc522.uid.uidByte[i], HEX));
-//  }
-  /*Serial.println();
-  Serial.print("Mensagem : ");*/
-//  conteudo.toUpperCase();
-  
-  // Testa se o cartao1 foi lido
-//  if (conteudo.substring(1) == TAG_1)
-//  {
-//      Serial.println("Aceito");
-//      return true;
-//  }
-    
-    return false;
-  
- 
+  return false;
 }
 float distance(){
   long t = ultrasonic.timing();
