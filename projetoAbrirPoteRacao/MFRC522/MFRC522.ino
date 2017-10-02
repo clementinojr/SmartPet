@@ -3,6 +3,9 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <MFRC522.h>
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
 
 
 //inicializa as portas do motor de passo
@@ -45,8 +48,20 @@ const int stepsPerRevolution = 500;
 Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
 //inicia sensor de distancia
 Ultrasonic ultrasonic(trigger, echo);
+
+
+// Software SPI (slower updates, more flexible pin options):
+// pin 7 - Serial clock out (SCLK)
+// pin 6 - Serial data out (DIN)
+// pin 5 - Data/Command select (D/C)
+// pin 4 - LCD chip select (CS)
+// pin 3 - LCD reset (RST)
+Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+
 void setup()
 {
+
+	lcd.InitLCD(); //Intializing LCD
   Serial.begin(9600);
   isOpen = false;
   isService = false;
@@ -63,29 +78,29 @@ void loop()
 
 if(isOpen){
   if(isService){
-    if(digitalRead(pino_w)== HIGH){
-      
-    Serial.println("Pino w High");
-      fechar();
-      isService=false;
-      
-    Serial.println("Fora de servico");
-    }  
+	if(digitalRead(pino_w)== HIGH){
+	  
+	Serial.println("Pino w High");
+	  fechar();
+	  isService=false;
+	  
+	Serial.println("Fora de servico");
+	}  
   }else{
-    if(distanceVal >20 ){
-      fechar();
-    }
+	if(distanceVal >20 ){
+	  fechar();
+	}
   }  
 }else{
 
  if(reconheceu){
-    abrir();    
+	abrir();    
   }else if(digitalRead(pino_w)== LOW){
-    Serial.println("Pino w Low");
-    abrir();
-    isService=true;
-    
-    Serial.println("Em servico");
+	Serial.println("Pino w Low");
+	abrir();
+	isService=true;
+	
+	Serial.println("Em servico");
    }
 
   
@@ -93,14 +108,14 @@ if(isOpen){
 }
 
 void abrir(){
-    Serial.println("Abrindo...");
-      motor(-180);//abre
-     isOpen = true;  
+	Serial.println("Abrindo...");
+	  motor(-180);//abre
+	 isOpen = true;  
 }
 void fechar(){
-        Serial.println("Fechando..");
-      motorClose(-180);//fecha
-      isOpen = false;
+		Serial.println("Fechando..");
+	  motorClose(-180);//fecha
+	  isOpen = false;
 }
 
 void motor(int graus) {
@@ -115,8 +130,8 @@ void motorClose(int graus) {
 }
 boolean rfidMod() {
   if(mfrc522.PICC_IsNewCardPresent()){
-      Serial.println("Aceito");
-      return true;
+	  Serial.println("Aceito");
+	  return true;
   }
   return false;
 }
