@@ -3,14 +3,22 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <MFRC522.h>
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
 
 
 //inicializa as portas do motor de passo
-#define IN_1 7
-#define IN_2 6
-#define IN_3 5
-#define IN_4 4
+#define IN_1 4
+#define IN_2 5
+#define IN_3 6
+#define IN_4 7
 #define SPEED_ROTATION 12
+
+//wifi
+const int pino_w = 0;
+
+
 
 //inicializa as variaveis do rfid
 
@@ -21,13 +29,14 @@
 #define RST_PIN 9
 
 // Definicoes pino modulo RC522
-MFRC522 mfrc522(SS_PIN, RST_PIN); 
+MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 
 //inicializa portas do sensor ultrasonico
-#define trigger 2
-#define echo 3
-
+#define trigger 3
+#define echo 2
+boolean isOpen;
+boolean isService;
 
 
 //tags
@@ -37,118 +46,213 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 const int stepsPerRevolution = 500;
 Stepper myStepper(stepsPerRevolution, IN_1, IN_3, IN_2, IN_4);
-
 //inicia sensor de distancia
-
-
 Ultrasonic ultrasonic(trigger, echo);
 
+
+// Software SPI (slower updates, more flexible pin options):
+// pin 7 - Serial clock out (SCLK)
+// pin 6 - Serial data out (DIN)
+// pin 5 - Data/Command select (D/C)
+// pin 4 - LCD chip select (CS)
+// pin 3 - LCD reset (RST)
+
+Adafruit_PCD8544 display = Adafruit_PCD8544(A5, A4, A3, A2, A1);
+
+#define NUMFLAKES 10
+#define XPOS 0
+#define YPOS 1
+#define DELTAY 2
+
+
+#define LOGO16_GLCD_HEIGHT 16
+#define LOGO16_GLCD_WIDTH  16
+
+
+//weight
+
+
+#define DOUT  6
+#define CLK  7
+
+
+HX711 scale(DOUT, CLK);
+
+float calibration_factor = -7050; //-7050 worked for my 440lb max scale setup
+
+
+void scaleSetup() {
+
+	Serial.println("HX711 calibration sketch");
+	Serial.println("Remove all weight from scale");
+	Serial.println("After readings begin, place known weight on scale");
+	Serial.println("Press + or a to increase calibration factor");
+	Serial.println("Press - or z to decrease calibration factor");
+
+	scale.set_scale();
+	scale.tare(); //Reset the scale to 0
+
+	long zero_factor = scale.read_average(); //Get a baseline reading
+	Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
+	Serial.println(zero_factor);
+}
 
 
 void setup()
 {
-  Serial.begin(9600);
+
+	scaleSetup();
+	display.begin();
+	display.setContrast(50);
+	display.clearDisplay();
+	display.setRotation(1); //rotate 90
+
+	display.display();
+	display.setTextSize(1);
+	display.setTextColor(BLACK);
+
+	//lcd.InitLCD(); //Intializing LCD
+	Serial.begin(9600);
+	isOpen = false;
+	isService = false;
+	myStepper.setSpeed(60);
+	SPI.begin();// Inicia  SPI bus  
+	mfrc522.PCD_Init(); // Inicia MFRC522
+}
 
 
-  myStepper.setSpeed(60);
+float distanceVal;
+boolean reconheceu;
 
-   // Inicia  SPI bus
-  SPI.begin();
-  // Inicia MFRC522
-  mfrc522.PCD_Init(); 
+void refreshDisplay() {
+
+
+	display.clearDisplay();
+	display.setCursor(0, 0);
+	display.print("Dis:");
+	display.println((int)distanceVal);
+	display.print("Tag:");
+	display.println(reconheceu);
+
+	display.print("Serv:");
+	display.println(isService);
+	display.print("Wifi:");
+	display.println(false);//todo
+	display.print("Wgt:");
+	display.println(false);//todo
+
+	display.display();
+
+
+
 
 }
 
-void loop()
-{
+void loopScale() {
 
-  boolean isOpen = false;
-  boolean reconheceu = rfidMod();
-  
+	scale.set_scale(calibration_factor); //Adjust to this calibration factor
 
-  if(reconheceu){
-    Serial.println("Abrindo...");
-      motor(180);
-     isOpen = true;
-     //delay(2000);
-    }
-  if(isOpen == true){
-      Serial.println("Fechando..");
-      //delay(1000);
-      motorClose(180);
-    }
+	Serial.print("Reading: ");
+	Serial.print(scale.get_units(), 1);
+	Serial.print(" lbs"); //Change this to kg and re-adjust the calibration factor if you follow SI units like a sane person
+	Serial.print(" calibration_factor: ");
+	Serial.print(calibration_factor);
+	Serial.println();
 
-
-
-     
+	if (Serial.available())
+	{
+		char temp = Serial.read();
+		if (temp == '+' || temp == 'a')
+			calibration_factor += 10;
+		else if (temp == '-' || temp == 'z')
+			calibration_factor -= 10;
+	}
 
 }
+
+void loop() {
+
+	loopScale();
+	distanceVal = distance();
+	reconheceu = rfidMod();
+
+
+	refreshDisplay();
+	if (isOpen) {
+		if (isService) {
+			if (digitalRead(pino_w) == HIGH) {
+
+				Serial.println("Pino w High");
+				fechar();
+				isService = false;
+
+				Serial.println("Fora de servico");
+			}
+		}
+		else {
+			if (distanceVal >20) {
+				fechar();
+			}
+		}
+	}
+	else {
+
+		if (reconheceu) {
+			abrir();
+		}
+		else if (digitalRead(pino_w) == LOW) {
+			Serial.println("Pino w Low");
+			abrir();
+			isService = true;
+
+			Serial.println("Em servico");
+		}
+	}
+}
+
+void abrir() {
+	Serial.println("Abrindo...");
+	motor(-180);//abre
+	isOpen = true;
+}
+void fechar() {
+	Serial.println("Fechando..");
+	motor(180);
+	//motorClose(-180);//fecha
+	isOpen = false;
+}
+
+
+
+
 void motor(int graus) {
-
-  //Gira o motor no sentido horario a 90 graus 2 vezes
-  myStepper.step(converteGraus(graus));
-  delay(2000);
+	myStepper.step(converteGraus(graus));
+	delay(2000);
 
 }
-void motorClose(int graus) {
-
-  //Gira o motor no sentido horario a 90 graus 2 vezes
-
-  myStepper.step(-converteGraus(graus));
-
-  delay(2000);
-
-}
-boolean rfidMod() {
-
-   // Aguarda a aproximacao do cartao
-  if ( ! mfrc522.PICC_IsNewCardPresent()) 
-  {
-    return false;
-  }
-  // Seleciona um dos cartoes
-  if ( ! mfrc522.PICC_ReadCardSerial()) 
-  {
-    return false;
-  }
-  // Mostra UID na serial
-  //Serial.print("UID da tag :");
-  String conteudo= "";
-  byte letra;
-  for (byte i = 0; i < mfrc522.uid.size; i++) 
-  {
-     //Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-     //Serial.print(mfrc522.uid.uidByte[i], HEX);
-     conteudo.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
-     conteudo.concat(String(mfrc522.uid.uidByte[i], HEX));
-  }
-  /*Serial.println();
-  Serial.print("Mensagem : ");*/
-  conteudo.toUpperCase();
-  
-  // Testa se o cartao1 foi lido
-  if (conteudo.substring(1) == TAG_1)
-  {
-      Serial.println("Aceito");
-      return true;
-  }
-    
-    return false;
-  
- 
-}
-//float distance(){
-//  long t = ultrasonic.timing();
-//  loat dt = t * 0.034 / 2;
-//  Serial.print("Distancia: ");
-//  Serial.println(dt);
-//  delay(500);
+//void motorClose(int graus) {
+//	myStepper.step(-converteGraus(graus));
+//	delay(2000);
 //
-//  return dt;
 //}
-int converteGraus(int graus) {
-  double valorMotor = 5.689 * graus;
-  return valorMotor;
+boolean rfidMod() {
+	if (mfrc522.PICC_IsNewCardPresent()) {
+		Serial.println("Aceito");
+		return true;
+	}
+	return false;
 }
+float distance() {
+	long t = ultrasonic.timing();
+	long dt = t * 0.034 / 2;
 
+	Serial.print("Distancia: ");
+	Serial.println(dt);
+	delay(500);
 
+	return dt;
+}
+int converteGraus(int graus) {
+	double valorMotor = 5.689 * graus;
+	return valorMotor;
+}
