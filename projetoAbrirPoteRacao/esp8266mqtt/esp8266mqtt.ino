@@ -1,3 +1,7 @@
+#include <HX711_ADC.h>
+
+
+
 /*
 Equivalencia das saidas Digitais entre NodeMCU e ESP8266 (na IDE do Arduino)
 NodeMCU - ESP8266
@@ -25,6 +29,13 @@ source : https://bitbucket.org/MarcoRabelo/esp8266/src/8b530e758b97/06-MQTT_WiFi
 #include <PubSubClient.h>
 #include <EEPROM.h>
 
+#include <RDM6300.h>
+
+
+#include <Stepper.h>
+#include <SoftwareSerial.h>
+#include <SPI.h>
+
 #define DEBUG                   //Se descomentar esta linha vai habilitar a 'impressão' na porta serial
 
 #define servidor_mqtt             "m12.cloudmqtt.com"
@@ -48,6 +59,77 @@ uint8_t horarioGato1 = 12;
 uint8_t horarioGato2 = 16;
 uint8_t quantidadeGato1 = 100;
 uint8_t quantidadeGato2 = 200;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// #define TagBlue "18 0 39 31 46"
+// #define TagGreen "12 0 7B 1B D0"
+
+//Inicializa a serial nos pinos 2 (RX) e 3 (TX)
+// SoftwareSerial RFID(4, 5);
+// uint8_t Payload[6]; // used for read comparisons
+
+// RDM6300 RDM6300(Payload);
+// uint8_t tagBlue[6] = {0x18, 0x0, 0x39, 0x31, 0x46};
+
+int relayDoor = 0;
+
+int isOnTime=LOW;
+
+// unsigned long currentMillisGlobal;
+
+int isOpenState = LOW;
+int openInterval;// = 5000;
+long previousOpenMillis = 0;
+
+int relayDispenser = 16; //port
+int shakeInterval = 200;
+long previousShakenMillis = 0;
+int isShaking = LOW;
+
+int toDispense = 0;
+int weight = 0;
+
+// #define DOUT 6
+// #define CLK 7
+
+// HX711 scale(DOUT, CLK);
+
+// float calibration_factor = -110; //-7050 worked for my 440lb max scale setup
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //Função para imprimir na porta serial
 void imprimirSerial(bool linha, String mensagem){
@@ -111,26 +193,26 @@ void gravarStatusPino(uint8_t statusPino){
 }
 
 void gravarHorarioGato1(uint8_t dado) {
-	EEPROM.begin(memoria_alocada);
-	EEPROM.write(1, dado);
-	EEPROM.end();
+  EEPROM.begin(memoria_alocada);
+  EEPROM.write(1, dado);
+  EEPROM.end();
 }
 void gravarHorarioGato2(uint8_t dado) {
-	EEPROM.begin(memoria_alocada);
-	EEPROM.write(2, dado);
-	EEPROM.end();
+  EEPROM.begin(memoria_alocada);
+  EEPROM.write(2, dado);
+  EEPROM.end();
 }
 
 void gravarQuantidadeGato1(uint8_t dado) {
-	EEPROM.begin(memoria_alocada);
-	EEPROM.write(3, dado);
-	EEPROM.end();
+  EEPROM.begin(memoria_alocada);
+  EEPROM.write(3, dado);
+  EEPROM.end();
 }
 
 void gravarQuantidadeGato2(uint8_t dado) {
-	EEPROM.begin(memoria_alocada);
-	EEPROM.write(4, dado);
-	EEPROM.end();
+  EEPROM.begin(memoria_alocada);
+  EEPROM.write(4, dado);
+  EEPROM.end();
 }
 
 
@@ -244,8 +326,26 @@ void retorno(char* topico, byte* mensagem, unsigned int tamanho) {
 
 }
 
+
+
+void setup(){
+  setupNode();
+
+
+  pinMode(relayDoor, OUTPUT);
+  pinMode(relayDispenser, OUTPUT);
+  // scaleSetup();
+  // reset();
+
+  //UpdateWeight();
+  Serial.begin(9600);
+  // mfrc522.PCD_Init();
+
+
+}
+
 //Função inicial (será executado SOMENTE quando ligar o ESP)
-void setup() {
+void setupNode() {
   #ifdef DEBUG
     Serial.begin(115200);
   #endif
@@ -369,10 +469,79 @@ void setup() {
   lerStatusAnteriorPino();
 }
 
-//Função de repetição (será executado INFINITAMENTE até o ESP ser desligado)
-void loop() {
+
+
+void scaleSetup()
+{
+
+  // Serial.println("HX711 calibration sketch");
+  // Serial.println("Remove all weight from scale");
+  // Serial.println("After readings begin, place known weight on scale");
+  // Serial.println("Press + or a to increase calibration factor");
+  // Serial.println("Press - or z to decrease calibration factor");
+
+  // scale.set_scale();
+  // scale.tare(); //Reset the scale to 0
+
+  // long zero_factor = scale.read_average(); //Get a baseline reading
+  //Serial.print("Zero factor: ");           //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
+  //Serial.println(zero_factor);
+}
+
+
+void loopMenu(){
+  // if (Serial.available())
+  // {
+  //   char temp = Serial.read();
+  //   if (temp == 'r'){
+  //     reset();
+  //   }
+  // }
+}
+
+void reset(){
+
+  // Serial.println("Configuracoes resetadas com sucesso");
+
+
+  // openInterval=3000;
+  // previousOpenMillis = currentMillisGlobal;
+  
+  // toDispense = 200;
+}
+
+
+
+void loop(){
+  loopNode();
+
+
+  //   loopMenu();
+  // delay(100);
+ // loopScale();
+  //UpdateWeight();
+  //Dispenser();
+  //Door();
+  // Serial.print("On time: ");
+  // Serial.println(IsOnTime());
+  // if (moduleRFID())
+  // {
+  //   Serial.println("Abrindo...");
+  // }
+  // else
+  // {
+  //   Serial.println("Rejeitado..");
+  // }
+
+}
+void loopNode() {
   if (!client.connected()) {
     reconectar();
   }
   client.loop();
 }
+
+
+
+
+ 

@@ -5,7 +5,6 @@
 #include <Stepper.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
-#include <RDM6300.h>
 
 // #define TagBlue "18 0 39 31 46"
 // #define TagGreen "12 0 7B 1B D0"
