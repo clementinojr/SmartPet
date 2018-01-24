@@ -1,0 +1,4 @@
+GatoAppV1.MainActivity, GatoAppV1;md5853d35ae32e6942bee323f079ed7d5ac.MainActivity
+GatoAppV1.MainActivity, GatoAppV1, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;md5853d35ae32e6942bee323f079ed7d5ac.MainActivity
+GatoAppV1.MainActivity;md5853d35ae32e6942bee323f079ed7d5ac.MainActivity
+gatoappv1.MainActivity;md5853d35ae32e6942bee323f079ed7d5ac.MainActivity
